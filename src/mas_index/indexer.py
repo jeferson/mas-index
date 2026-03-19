@@ -28,8 +28,8 @@ CHUNKS_MAPPING = {
         "properties": {
             "chunk_id": {"type": "keyword"},
             "doc_id": {"type": "keyword"},
+            "topic": {"type": "keyword"},
             "text": {"type": "text", "analyzer": "english"},
-            "headings": {"type": "text"},
             "chunk_index": {"type": "integer"},
             "created_at": {"type": "date"},
             # Future: uncomment for semantic search
