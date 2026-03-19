@@ -1,6 +1,6 @@
 import logging
 
-from docling.chunking import HybridChunker
+from docling.chunking import HierarchicalChunker
 
 from .models import ChunkModel
 
@@ -10,10 +10,9 @@ logger = logging.getLogger(__name__)
 def chunk_document(
     docling_doc: object,
     doc_id: str,
-    max_tokens: int = 512,
 ) -> list[ChunkModel]:
-    """Chunk a DoclingDocument into search-ready pieces."""
-    chunker = HybridChunker(max_tokens=max_tokens)
+    """Chunk a DoclingDocument into section-based pieces."""
+    chunker = HierarchicalChunker()
     chunks = list(chunker.chunk(docling_doc))
 
     results = []
