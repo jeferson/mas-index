@@ -1,6 +1,6 @@
 import logging
 
-import anthropic
+import google.generativeai as genai
 from elasticsearch import Elasticsearch
 
 from .config import Settings
@@ -34,7 +34,7 @@ def build_context(chunks: list[dict]) -> str:
 
 
 def ask(question: str, settings: Settings) -> None:
-    """Search relevant chunks and stream a Claude answer to stdout."""
+    """Search relevant chunks and stream a Gemini answer to stdout."""
     es = Elasticsearch(
         settings.es_host,
         basic_auth=(settings.es_user, settings.es_password),
@@ -50,19 +50,17 @@ def ask(question: str, settings: Settings) -> None:
     context = build_context(chunks)
     logger.info("Retrieved %d chunks for question", len(chunks))
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key or None)
+    genai.configure(api_key=settings.gemini_api_key)
+    model = genai.GenerativeModel(
+        model_name=settings.gemini_model,
+        system_instruction=SYSTEM_PROMPT,
+    )
 
-    with client.messages.stream(
-        model=settings.claude_model,
-        max_tokens=64000,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Documents:\n\n{context}\n\nQuestion: {question}",
-            }
-        ],
-    ) as stream:
-        for text in stream.text_stream:
-            print(text, end="", flush=True)
+    response = model.generate_content(
+        f"Documents:\n\n{context}\n\nQuestion: {question}",
+        stream=True,
+    )
+    for chunk in response:
+        if chunk.text:
+            print(chunk.text, end="", flush=True)
     print()  # newline after streamed response

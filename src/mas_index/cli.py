@@ -296,8 +296,8 @@ def ask(question: str, chunks: int | None) -> None:
     """Ask a question about your indexed documents using Claude."""
     settings = Settings()
 
-    if not settings.anthropic_api_key:
-        console.print("[red]ANTHROPIC_API_KEY is not set. Add it to your .env file.[/red]")
+    if not settings.gemini_api_key:
+        console.print("[red]GEMINI_API_KEY is not set. Add it to your .env file.[/red]")
         raise click.Abort()
 
     if chunks is not None:
