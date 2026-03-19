@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     claude_model: str = "claude-opus-4-6"
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.5-flash-lite"
     rag_chunks: int = 5
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
