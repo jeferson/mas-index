@@ -31,6 +31,7 @@ CHUNKS_MAPPING = {
             "text": {"type": "text", "analyzer": "english"},
             "headings": {"type": "text"},
             "chunk_index": {"type": "integer"},
+            "created_at": {"type": "date"},
             # Future: uncomment for semantic search
             # "embedding": {"type": "dense_vector", "dims": 384, "index": True, "similarity": "cosine"},
         }

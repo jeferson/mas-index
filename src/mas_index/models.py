@@ -20,3 +20,4 @@ class ChunkModel(BaseModel):
     text: str
     headings: list[str] = Field(default_factory=list)
     chunk_index: int
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
