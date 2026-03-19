@@ -1,6 +1,7 @@
 import logging
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from elasticsearch import Elasticsearch
 
 from .config import Settings
@@ -50,17 +51,13 @@ def ask(question: str, settings: Settings) -> None:
     context = build_context(chunks)
     logger.info("Retrieved %d chunks for question", len(chunks))
 
-    genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel(
-        model_name=settings.gemini_model,
-        system_instruction=SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=settings.gemini_api_key)
 
-    response = model.generate_content(
-        f"Documents:\n\n{context}\n\nQuestion: {question}",
-        stream=True,
-    )
-    for chunk in response:
+    for chunk in client.models.generate_content_stream(
+        model=settings.gemini_model,
+        contents=f"Documents:\n\n{context}\n\nQuestion: {question}",
+        config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+    ):
         if chunk.text:
             print(chunk.text, end="", flush=True)
     print()  # newline after streamed response
