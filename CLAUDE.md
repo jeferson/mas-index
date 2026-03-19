@@ -29,7 +29,7 @@ ruff format src/
 **Key workflow:**
 1. User places `.docx` files in `data/input/`
 2. `mas-index run` processes them: DOCX → Markdown → Chunks → Elasticsearch
-3. `mas-index ask "question"` searches chunks and streams a Claude-powered answer
+3. `mas-index ask "question"` searches chunks and streams an LLM-powered answer (Gemini by default, Claude via config)
 
 ## Architecture
 
@@ -67,7 +67,7 @@ data/input/*.docx
 - Runs BM25 `match` search on `mas-chunks` index (searches `text` field)
 - Retrieves top-N chunks (configurable via `RAG_CHUNKS` setting)
 - Builds context string with excerpt headers: `[Excerpt i | topic: {heading}]`
-- Streams Claude response using `client.messages.stream()`
+- Streams LLM response using Gemini API (default) or Claude API (if configured)
 
 ## Data Models
 
@@ -76,6 +76,8 @@ Both defined in `models.py` as Pydantic v2 `BaseModel`:
 **DocumentModel**
 - `doc_id`: SHA-256 of source DOCX bytes (unique identifier)
 - `title`: Titlecased filename (e.g., "Mas Test" from "mas-test.docx")
+- `source_path`: Full path to source DOCX file
+- `relative_path`: Path relative to input directory (e.g., "NOVOS OU MIGRADOS/Alerta 99/DES/file.docx")
 - `markdown`: Full post-processed markdown (with ## headings)
 - `images`: List of extracted image paths (not currently used)
 - `metadata`: Dict for future expansion
@@ -87,6 +89,7 @@ Both defined in `models.py` as Pydantic v2 `BaseModel`:
 - `topic`: The ## heading text (e.g., "INTRODUÇÃO")
 - `text`: Full section body (including ### sub-sections)
 - `chunk_index`: Sequential 0-based section index within document
+- `relative_path`: Same as parent document (allows filtering by source file)
 - `created_at`: ISO-8601 UTC timestamp
 
 ## Configuration
@@ -103,8 +106,10 @@ tracker_db = Path("data/tracker.db")        # TRACKER_DB
 documents_index = "mas-documents"           # DOCUMENTS_INDEX
 chunks_index = "mas-chunks"                 # CHUNKS_INDEX
 batch_size = 50                             # BATCH_SIZE (Elasticsearch bulk chunk size)
-anthropic_api_key = ""                      # ANTHROPIC_API_KEY
-claude_model = "claude-opus-4-6"            # CLAUDE_MODEL
+gemini_api_key = ""                         # GEMINI_API_KEY (for RAG answer generation)
+gemini_model = "gemini-2.5-flash-lite"      # GEMINI_MODEL
+anthropic_api_key = ""                      # ANTHROPIC_API_KEY (optional: if switching to Claude)
+claude_model = "claude-opus-4-6"            # CLAUDE_MODEL (optional: if switching to Claude)
 rag_chunks = 5                              # RAG_CHUNKS (top-N chunks to retrieve)
 ```
 
@@ -145,13 +150,23 @@ Mappings defined in `indexer.py`:
 
 **CHUNKS_MAPPING:**
 - `chunk_id`: keyword (exact match only)
+- `doc_id`: keyword
 - `topic`: keyword (for faceting/filtering, not analyzed)
 - `text`: text with English analyzer (stemming + stopwords for BM25)
-- `doc_id`, `chunk_index`, `created_at`: keyword, integer, date
+- `chunk_index`: integer
+- `relative_path`: keyword (for filtering by source file path)
+- `created_at`: date
 
 **DOCUMENTS_MAPPING:**
-- `title`, `markdown`: text with English analyzer
-- `source_path`, `file_hash`: keyword
+- `doc_id`: keyword
+- `title`: text with English analyzer
+- `source_path`: keyword (full path)
+- `relative_path`: keyword (path relative to input directory)
+- `markdown`: text with English analyzer
+- `images`: keyword array
+- `metadata`: object
+- `file_hash`: keyword
+- `created_at`: date
 
 Future: `embedding` field (dense_vector) is stubbed out for semantic search.
 
@@ -222,7 +237,17 @@ curl -s -u elastic:changeme \
 - Reduced ~22 noisy chunks per doc to ~9 semantic sections
 - Each section has clear topic context (heading) + full body text
 
-This ensures consistency between what's stored (post-processed markdown in `mas-documents`) and what's chunked (same markdown in `mas-chunks`).
+**feature/relative-path branch (commit cf0a715):**
+- Added `relative_path` field to both `DocumentModel` and `ChunkModel`
+- Stores file path relative to input directory (e.g., `"NOVOS OU MIGRADOS/Alerta 99/DES/file.docx"`)
+- Allows filtering/querying chunks by source file without joining
+- `source_path` (full path) preserved for backward compatibility
+
+**Gemini API integration (in progress):**
+- Switched default RAG engine from Claude API to Google Gemini API
+- Uses `google-genai` SDK for answer generation
+- Configuration via `GEMINI_API_KEY` and `GEMINI_MODEL` env vars
+- Claude API still available as alternative (set `ANTHROPIC_API_KEY` to use)
 
 ## Testing
 
@@ -249,5 +274,6 @@ def test_chunk_document_splits_on_level_2_headings():
 | `ConnectionError: Elasticsearch not reachable` | Run `docker compose up -d` to start ES |
 | No chunks appear after indexing | Check `mas-index status` — if status="failed", see error message in tracker |
 | Chunks have wrong `topic` | Verify post-processed markdown in `data/output/` has correct `##` headings |
-| `ANTHROPIC_API_KEY` error on `ask` | Set `ANTHROPIC_API_KEY` in `.env` or environment |
+| `GEMINI_API_KEY` error on `ask` | Set `GEMINI_API_KEY` in `.env` or environment (Gemini is default LLM) |
+| Want to use Claude instead of Gemini | Set `ANTHROPIC_API_KEY` in `.env` and modify `asker.py` to use Claude SDK |
 | Duplicate processing on re-run | Delete `data/tracker.db` and re-run (will reprocess all files) |
