@@ -165,6 +165,7 @@ def convert_docx(
     source_path: Path,
     output_dir: Path,
     converter: DocumentConverter | None = None,
+    input_dir: Path | None = None,
 ) -> tuple[DocumentModel, object]:
     """Convert a DOCX file to markdown.
 
@@ -199,11 +200,15 @@ def convert_docx(
     images = [str(p.relative_to(output_dir)) for p in image_dir.glob("*") if p.is_file()]
 
     fh = file_hash(source_path)
+    relative_path = (
+        str(source_path.relative_to(input_dir)) if input_dir else str(source_path)
+    )
 
     model = DocumentModel(
         doc_id=fh,
         title=title,
         source_path=str(source_path),
+        relative_path=relative_path,
         markdown=markdown,
         images=images,
         file_hash=fh,

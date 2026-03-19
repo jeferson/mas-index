@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 def chunk_document(
     markdown: str,
     doc_id: str,
+    relative_path: str = "",
 ) -> list[ChunkModel]:
     """Chunk post-processed markdown into section-based pieces.
 
@@ -54,6 +55,7 @@ def chunk_document(
                 topic=topic,
                 text=text,
                 chunk_index=idx,
+                relative_path=relative_path,
             )
         )
         idx += 1

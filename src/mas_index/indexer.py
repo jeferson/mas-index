@@ -14,6 +14,7 @@ DOCUMENTS_MAPPING = {
             "doc_id": {"type": "keyword"},
             "title": {"type": "text", "analyzer": "english"},
             "source_path": {"type": "keyword"},
+            "relative_path": {"type": "keyword"},
             "markdown": {"type": "text", "analyzer": "english"},
             "images": {"type": "keyword"},
             "metadata": {"type": "object", "enabled": True},
@@ -31,6 +32,7 @@ CHUNKS_MAPPING = {
             "topic": {"type": "keyword"},
             "text": {"type": "text", "analyzer": "english"},
             "chunk_index": {"type": "integer"},
+            "relative_path": {"type": "keyword"},
             "created_at": {"type": "date"},
             # Future: uncomment for semantic search
             # "embedding": {"type": "dense_vector", "dims": 384, "index": True, "similarity": "cosine"},

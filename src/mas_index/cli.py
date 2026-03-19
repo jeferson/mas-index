@@ -78,9 +78,9 @@ def convert(input_dir: Path | None, output_dir: Path | None) -> None:
 
             try:
                 doc_model, docling_doc = convert_docx(
-                    docx_path, output_dir, converter_instance
+                    docx_path, output_dir, converter_instance, input_dir
                 )
-                chunks = chunk_document(doc_model.markdown, doc_model.doc_id)
+                chunks = chunk_document(doc_model.markdown, doc_model.doc_id, doc_model.relative_path)
                 tracker.set_converted(path_str)
                 converted += 1
                 logger.info(
@@ -143,9 +143,9 @@ def index(
 
             try:
                 doc_model, docling_doc = convert_docx(
-                    docx_path, output_dir, converter_instance
+                    docx_path, output_dir, converter_instance, input_dir
                 )
-                chunks = chunk_document(doc_model.markdown, doc_model.doc_id)
+                chunks = chunk_document(doc_model.markdown, doc_model.doc_id, doc_model.relative_path)
 
                 indexer.index_document(doc_model)
                 success, errors = indexer.index_chunks(chunks)
@@ -226,11 +226,11 @@ def run(
             try:
                 # Convert
                 doc_model, docling_doc = convert_docx(
-                    docx_path, output_dir, converter_instance
+                    docx_path, output_dir, converter_instance, input_dir
                 )
 
                 # Chunk
-                chunks = chunk_document(doc_model.markdown, doc_model.doc_id)
+                chunks = chunk_document(doc_model.markdown, doc_model.doc_id, doc_model.relative_path)
 
                 # Index
                 indexer.index_document(doc_model)
