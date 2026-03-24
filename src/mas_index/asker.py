@@ -19,7 +19,7 @@ def search_chunks(es: Elasticsearch, index: str, question: str, n: int) -> list[
         body={
             "query": {"match": {"text": question}},
             "size": n,
-            "_source": ["text", "headings", "doc_id", "chunk_index"],
+            "_source": ["text", "topic", "doc_id", "chunk_index"],
         },
     )
     return [hit["_source"] for hit in result["hits"]["hits"]]
@@ -28,8 +28,8 @@ def search_chunks(es: Elasticsearch, index: str, question: str, n: int) -> list[
 def build_context(chunks: list[dict]) -> str:
     parts = []
     for i, chunk in enumerate(chunks, 1):
-        heading = " > ".join(chunk.get("headings") or []) or "—"
-        parts.append(f"[Excerpt {i} | section: {heading}]\n{chunk['text']}")
+        topic = chunk.get("topic") or "—"
+        parts.append(f"[Excerpt {i} | topic: {topic}]\n{chunk['text']}")
     return "\n\n---\n\n".join(parts)
 
 
